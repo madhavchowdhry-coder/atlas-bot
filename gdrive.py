@@ -19,6 +19,8 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
+from google_auth import get_user_creds
+
 SCOPES = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets",
@@ -27,10 +29,13 @@ FOLDER_MIME = "application/vnd.google-apps.folder"
 
 
 class DriveStore:
-    def __init__(self, sa_file: str, ids_file: str = "atlas_ids.json"):
-        creds = service_account.Credentials.from_service_account_file(
-            sa_file, scopes=SCOPES
-        )
+    def __init__(self, sa_file: str = "service_account.json",
+                 ids_file: str = "atlas_ids.json"):
+        creds = get_user_creds()  # act as Madhav: his storage, his ownership
+        if creds is None:
+            creds = service_account.Credentials.from_service_account_file(
+                sa_file, scopes=SCOPES
+            )
         self.drive = build("drive", "v3", credentials=creds)
         self.gc = gspread.authorize(creds)
         with open(ids_file) as f:

@@ -18,6 +18,8 @@ import gspread
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+from google_auth import get_user_creds
+
 SCOPES = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets",
@@ -99,9 +101,11 @@ def main():
     root = sys.argv[1]
     sa_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "service_account.json")
 
-    creds = service_account.Credentials.from_service_account_file(
-        sa_file, scopes=SCOPES
-    )
+    creds = get_user_creds()
+    if creds is None:
+        creds = service_account.Credentials.from_service_account_file(
+            sa_file, scopes=SCOPES
+        )
     drive = build("drive", "v3", credentials=creds)
     gc = gspread.authorize(creds)
 

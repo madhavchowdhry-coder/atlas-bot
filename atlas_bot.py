@@ -61,6 +61,18 @@ if _sa_env and not os.path.exists(_sa_path):
     with open(_sa_path, "w", encoding="utf-8") as _f:
         _f.write(_sa_env)
 
+# 1b) token.json (user OAuth) can also arrive as an env var
+_tok_env = os.getenv("GOOGLE_TOKEN_JSON")
+if _tok_env and not os.path.exists("token.json"):
+    with open("token.json", "w", encoding="utf-8") as _f:
+        _f.write(_tok_env)
+
+# 1c) forgive a full URL pasted as the folder id
+_fid = os.getenv("DRIVE_FOLDER_ID", "")
+if "/folders/" in _fid:
+    os.environ["DRIVE_FOLDER_ID"] = (
+        _fid.split("/folders/")[1].split("?")[0].strip("/"))
+
 # 2) first boot: build the Drive tree automatically if DRIVE_FOLDER_ID is set
 if not os.path.exists("atlas_ids.json") and os.getenv("DRIVE_FOLDER_ID"):
     import subprocess
@@ -71,7 +83,7 @@ if not os.path.exists("atlas_ids.json") and os.getenv("DRIVE_FOLDER_ID"):
     )
 
 claude = anthropic.Anthropic()
-store = DriveStore(_sa_path)
+store = DriveStore(_sa_path)  # prefers token.json (your identity) over the SA
 glive = GoogleLive()
 
 TRACKERS = {"papers": "papers", "nuos": "nuos", "hospital": "hospital",
