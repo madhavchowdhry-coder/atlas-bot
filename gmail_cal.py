@@ -53,6 +53,34 @@ class GoogleLive:
             })
         return out
 
+    def search_messages(self, query: str = "in:inbox newer_than:3d",
+                        max_n: int = 10) -> list:
+        """On-demand Gmail search (the 'mail' command)."""
+        res = (
+            self.gmail.users()
+            .messages()
+            .list(userId="me", q=query, maxResults=max_n)
+            .execute()
+        )
+        out = []
+        for m in res.get("messages", []):
+            full = (
+                self.gmail.users()
+                .messages()
+                .get(userId="me", id=m["id"], format="metadata",
+                     metadataHeaders=["From", "Subject", "Date"])
+                .execute()
+            )
+            headers = {h["name"]: h["value"]
+                       for h in full.get("payload", {}).get("headers", [])}
+            out.append({
+                "sender": headers.get("From", ""),
+                "subject": headers.get("Subject", ""),
+                "date": headers.get("Date", ""),
+                "snippet": full.get("snippet", ""),
+            })
+        return out
+
     def mark_seen(self, msg_id: str) -> None:
         """Remove UNREAD so the poller never re-triages the same mail.
         (It stays in the inbox; 'seen by ATLAS' not 'handled by Madhav'.)"""

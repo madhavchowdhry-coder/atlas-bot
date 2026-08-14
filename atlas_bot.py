@@ -260,6 +260,33 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(meta["confirm"])
         return
 
+    # --- on-demand email fetch: "mail" or "mail <search terms>"
+    if low == "mail" or low.startswith("mail "):
+        if not glive.ok:
+            await update.message.reply_text(
+                "Gmail isn't connected (token.json missing on the server).")
+            return
+        terms = text[4:].strip()
+        query = terms if terms else "in:inbox newer_than:3d"
+        try:
+            found = glive.search_messages(query)
+        except Exception:
+            log.exception("Mail search failed")
+            await update.message.reply_text("Mail search failed — try again.")
+            return
+        prompt = (f'[command: mail, query="{query}"] Results:\n'
+                  + json.dumps(found)
+                  + "\nAnswer what he's looking for from these (or summarise "
+                  "the inbox if no specific ask). If a reply is warranted, "
+                  "include a draft inside <draft_json> tags per the pending-"
+                  "email protocol. Telegram-short.")
+        reply = extract_draft(ask_claude(
+            load_memory() + [{"role": "user", "content": prompt}]))
+        remember("user", text)
+        remember("assistant", reply)
+        await update.message.reply_text(reply)
+        return
+
     # --- social queue (pull, never push)
     if low == "social":
         prompt = ("[command: social] He's free and pulling the social queue. "
